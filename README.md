@@ -1,13 +1,12 @@
-# terraform_aws_s3_cloudtrail_lake
+# AWS S3 CloudTrail Lake
+
 Trying out AWS Cloudtrail Lake for querying S3 object events
 
-
-
-## Run the following command to create the CloudTrail Lake Channel:
+## Set some variables
 
 ```
-export account_id="016230046494"
-export profile="gordonmurray"
+export account_id="xxxxx"
+export profile="default"
 export region="eu-west-1"
 ```
 
@@ -28,11 +27,11 @@ aws cloudtrail create-trail \
 aws cloudtrail put-event-selectors \
     --trail-name s3-object-trail \
     --advanced-event-selectors '[{
-        "Name": "S3 Data Events",
+        "Name": "Log all S3 events for specific buckets",
         "FieldSelectors": [
             {"Field": "eventCategory", "Equals": ["Data"]},
             {"Field": "resources.type", "Equals": ["AWS::S3::Object"]},
-            {"Field": "eventName", "Equals": ["PutObject", "DeleteObject"]}
+            {"Field": "resources.ARN", "Equals": ["arn:aws:s3:::my-cloudtrail-lake-bucket/*", "arn:aws:s3:::my-test-bucket-gordon/*"]}
         ]
     }]' \
     --region $region \
@@ -73,25 +72,16 @@ CloudTrail typically delivers logs within 15 minutes of the API call, but it can
 
 ```
 aws cloudtrail create-event-data-store \
-    --name s3-object-data-store \
+    --name s3-object-datastore \
     --region $region \
     --profile $profile
 ```
 
-## Associate the Event Data Store with the Trail
-
-```
-aws cloudtrail update-trail \
-    --name s3-object-trail \
-    --event-data-store arn:aws:cloudtrail:$region:$account_id:eventdatastore/s3-object-data-store \
-    --region $region \
-    --profile $profile
-```
 
 ## Query CloudTrail Lake Using SQL
 
 ```
-EventDataStoreId="7a42c7cc-a8ca-4555-a5cc-86ca2117c78d"
+EventDataStoreId="xxxxxx"
 
 aws cloudtrail query \
     --query-statement "SELECT eventSource, eventName, eventTime, requestParameters FROM $EventDataStoreId WHERE eventName IN ('PutObject', 'DeleteObject')" \
